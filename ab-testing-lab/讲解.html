@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AB 实验方法论 · 从假设检验到归因决策</title>
+<meta name="description" content="基于两个真实公开数据集的 A/B 实验完整方法论讲解：假设检验、SRM、置信区间、功效与样本量、多重比较、peeking 陷阱。" />
+<style>
+:root{
+  --paper:#f7f4ec; --card:#fffef9; --ink:#1c1917; --soft:#44403c; --muted:#78716c;
+  --line:#e5decf; --accent:#4f46e5; --teal:#0d9488; --red:#dc2626; --amber:#d97706;
+  --code-bg:#23201b; --code-fg:#f2ede3; --shadow:3px 3px 0 rgba(28,25,23,.85);
+  --serif:Georgia,"Songti SC","STSong","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;font-family:var(--sans);font-size:15.5px;line-height:1.75;color:var(--ink);background:var(--paper)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+h1,h2,h3{font-family:var(--serif);letter-spacing:.02em}
+code{font-family:Consolas,"Courier New",monospace}
+::selection{background:#ffe9a8}
+
+.topbar{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:2px solid var(--ink);
+  display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+.topbar .brand{font-family:var(--serif);font-weight:700;font-size:17px;white-space:nowrap}
+.layout{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:200px minmax(0,1fr);gap:30px;padding:26px 18px 60px}
+@media(max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}.sidebar{display:none}}
+.sidebar{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow-y:auto}
+.sidebar a{display:block;padding:4px 10px;border-left:2.5px solid var(--line);font-size:13px;color:var(--soft);margin-bottom:2px;border-radius:0 6px 6px 0}
+.sidebar a:hover{border-color:var(--accent);background:#efe9db;text-decoration:none}
+.sidebar .grp{font-size:11px;letter-spacing:.18em;color:var(--muted);margin:14px 0 6px 10px}
+
+.hero{border-bottom:2px solid var(--ink);padding:30px 0 26px}
+.hero h1{margin:0 0 10px;font-size:clamp(26px,4vw,38px)}
+.hero p{margin:0;color:var(--soft);max-width:760px}
+section{margin:40px 0}
+section>h2{display:flex;align-items:baseline;gap:12px;font-size:clamp(20px,3vw,26px);margin:0 0 6px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+section>h2 .no{font-size:13px;color:var(--muted)}
+section>.sub{color:var(--muted);margin:0 0 16px;font-size:14px}
+
+.card{background:var(--card);border:1.5px solid var(--ink);border-radius:10px;box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px}
+.card h3{margin:0 0 8px;font-size:17px}
+.card p{margin:0 0 10px;font-size:14.5px;color:var(--soft)}
+.card p:last-child{margin-bottom:0}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}
+th,td{border:1.5px solid var(--ink);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:#f0ebdd;font-family:var(--serif)}
+td code{background:#f0ebdd;padding:1px 6px;border-radius:4px;font-size:13px}
+.tip{border-left:4px solid var(--teal);background:#f0f5ef;padding:9px 14px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--soft);margin:10px 0}
+.warnbox{border-left:4px solid var(--red);background:#fdf1f1;padding:9px 14px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--soft);margin:10px 0}
+pre{margin:10px 0;background:var(--code-bg);color:var(--code-fg);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13.5px;line-height:1.6}
+pre .c{color:#ffd23f} pre .v{color:#8fd3c7} pre .p{color:#8a8577}
+.formula{background:#f0ebdd;border:1.5px dashed var(--muted);border-radius:8px;padding:12px 18px;font-family:var(--serif);font-size:16px;margin:10px 0;overflow-x:auto}
+ol.steps{counter-reset:st;list-style:none;padding:0;margin:12px 0}
+ol.steps li{counter-increment:st;position:relative;padding:6px 0 6px 38px;font-size:14.5px;color:var(--soft)}
+ol.steps li::before{content:counter(st);position:absolute;left:0;top:7px;width:26px;height:26px;border:1.5px solid var(--ink);border-radius:50%;background:var(--card);display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:13px}
+ol.steps li b{color:var(--ink)}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;font-size:14px}
+.kv b{font-family:var(--serif)}
+footer{border-top:2px solid var(--ink);padding:20px 18px;text-align:center;color:var(--muted);font-size:12.5px}
+@media(max-width:700px){.kv{grid-template-columns:1fr}td code,th code{white-space:normal;word-break:break-all}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><span class="brand">🧪 AB 实验方法论</span><span style="font-size:12.5px;color:var(--muted)">配套应用：ab-testing-lab（Streamlit）· 数据全部公开</span></div>
+
+<div class="layout">
+<nav class="sidebar">
+  <div class="grp">原理</div>
+  <a href="#s0">00 · 两个数据集</a>
+  <a href="#s1">01 · 假设检验框架</a>
+  <a href="#s2">02 · p 值的正确读法</a>
+  <a href="#s3">03 · 置信区间与效应量</a>
+  <a href="#s4">04 · 功效与样本量</a>
+  <div class="grp">工程与陷阱</div>
+  <a href="#s5">05 · SRM 数据质量</a>
+  <a href="#s6">06 · peeking 陷阱</a>
+  <a href="#s7">07 · 多重比较</a>
+  <a href="#s8">08 · 分层与辛普森</a>
+  <a href="#s9">09 · 常见作死清单</a>
+  <div class="grp">实战结论</div>
+  <a href="#s10">10 · 两个实验的结论</a>
+  <a href="#s11">11 · 代码导读</a>
+</nav>
+
+<main>
+<div class="hero">
+  <h1>AB 实验方法论：从假设检验到决策</h1>
+  <p>本手册配套 <code>ab-testing-lab</code> 交互应用，用两个<b>真实公开数据集</b>（营销落地页实验 294,478 行 + Cookie Cats 游戏实验 90,189 行）走完一次规范的全流程。所有结论均由数据计算得出，无编造。</p>
+</div>
+
+<!-- 00 -->
+<section id="s0">
+  <h2><span class="no">00</span>两个真实数据集</h2>
+  <div class="card">
+    <div class="kv">
+      <b>数据集 A</b><span>Kaggle 经典营销 A/B（ab_data.csv）：用户分流旧页面 vs 新页面，观察购买转化。294,478 行会话，2017-01。含 3,893 行组-页不匹配、7,788 行重复用户（本身就是数据质量教学素材）</span>
+      <b>数据集 B</b><span>Cookie Cats 关卡实验：把强制休息门槛从 30 关移到 40 关，观察次日/7 日留存。90,189 名玩家（Woopa 团队公开发布，DataCamp 经典案例）</span>
+      <b>为什么选它们</b><span>① 完全公开、可自由分发；② 一个「不显著」一个「显著」，正好覆盖两类决策；③ 双指标数据天然引出多重比较问题</span>
+    </div>
+  </div>
+</section>
+
+<!-- 01 -->
+<section id="s1">
+  <h2><span class="no">01</span>假设检验：把业务问题翻译成统计问题</h2>
+  <div class="card">
+    <h3>四步翻译法</h3>
+    <ol class="steps">
+      <li><b>原假设 H₀</b>：新页面对转化率<b>没有影响</b>（p_new = p_old）——默认怀疑一切变化</li>
+      <li><b>备择假设 H₁</b>：有影响（p_new ≠ p_old，双侧）或只关心单方向（单侧，慎用）</li>
+      <li><b>选检验</b>：比例类指标 → 双比例 z 检验 / 卡方；均值类（客单价、时长）→ t 检验；分布歪 → Mann-Whitney 或 Bootstrap</li>
+      <li><b>定 α</b>：惯例 0.05。含义：若 H₀ 为真，只有 5% 概率误报「显著」（假阳性）</li>
+    </ol>
+    <div class="formula">z = (p̂₂ − p̂₁) / √( p̂·(1−p̂)·(1/n₁ + 1/n₂) )，其中 p̂ 为合并转化率</div>
+    <pre><span class="p"># 应用中的实现（src/engine.py）</span>
+<span class="c">z, pval = proportions_ztest</span>([x1, x2], [n1, n2], alternative=<span class="v">"two-sided"</span>)</pre>
+    <div class="tip">业务翻译练习：「新页面转化率 11.87% vs 旧页面 12.04%」→ 统计问题「这 0.17pp 的差是真实差异还是随机波动」。</div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="s2">
+  <h2><span class="no">02</span>p 值的两种读法：一对一错</h2>
+  <div class="card">
+    <h3>正确 vs 错误</h3>
+    <table>
+      <tr><th>表述</th><th>对错</th><th>原因</th></tr>
+      <tr><td>「p = 0.16，我们<b>未能拒绝</b>原假设，样本量下证据不足」</td><td>✅</td><td>这是 p 值的定义：在 H₀ 为真时，观察到当前或更极端数据的概率</td></tr>
+      <tr><td>「p = 0.16，说明新页面<b>没有</b>影响」</td><td>❌</td><td>不显著 ≠ 证明无差异。可能只是样本量不够（看 MDE）</td></tr>
+      <tr><td>「p = 0.04，新页面 96% 概率更好」</td><td>❌</td><td>p 值不是「H₀ 为真的概率」，也不是效应大小的度量</td></tr>
+      <tr><td>「p = 0.001 比 p = 0.04 效应大 10 倍」</td><td>❌</td><td>p 值只管「有没有」，效应大小看差值与 CI</td></tr>
+    </table>
+    <div class="warnbox">营销页实验的真实结果：z = 1.40，p = 0.16——正确的结论是「本样本量下无法证明新页面更好（也无证据更差）」，而不是「新旧一样」。这两个表述在汇报时天差地别。</div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="s3">
+  <h2><span class="no">03</span>置信区间与效应量：比 p 值更重要</h2>
+  <div class="card">
+    <h3>差值的 95% 置信区间</h3>
+    <div class="formula">CI = (p̂₂ − p̂₁) ± 1.96 · √( p̂₁(1−p̂₁)/n₁ + p̂₂(1−p̂₂)/n₂ )</div>
+    <p>营销页实验：差值 −0.17pp，95% CI [−0.39, +0.04]pp——<b>区间几乎贴着 0 但仍跨 0</b>，这就是「差一点显著」的直观形态。汇报时给 CI 而不是只给 p 值：决策者需要知道「最差可能亏多少、最好可能赚多少」。</p>
+    <h3>效应量 Cohen's h</h3>
+    <p>h = 2·arcsin√p₂ − 2·arcsin√p₁。比例数据的标准化效应量，是功效计算的通用语言。经验参考：h &lt; 0.2 小、0.5 中、0.8 大。本实验 h ≈ 0.01——即使真实存在，也是极小的效应。</p>
+    <div class="tip">顺序建议：先看效应量是否业务上有意义，再看 CI 是否远离 0，最后才看 p 值。p 显著但效应量小到无意义的实验，一样不值得上线。</div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="s4">
+  <h2><span class="no">04</span>功效与样本量：先算后跑</h2>
+  <div class="card">
+    <h3>三个量的铁三角</h3>
+    <table>
+      <tr><th>量</th><th>含义</th><th>典型设定</th></tr>
+      <tr><td>α（假阳性率）</td><td>H₀ 为真时误报显著的概率</td><td>0.05</td></tr>
+      <tr><td>β（假阴性率）</td><td>H₁ 为真时漏检的概率</td><td>0.20（即功效 80%）</td></tr>
+      <tr><td>MDE（最小可检测差异）</td><td>希望可靠检出多小的差异</td><td>业务最小有意义值</td></tr>
+    </table>
+    <p>三个量 + 基线率互相锁定，<b>任意定死三个，第四个就被确定了</b>。实验设计 = 在成本约束下做这道四元方程。</p>
+    <h3>本数据的实算</h3>
+    <ul style="font-size:14.5px;color:var(--soft)">
+      <li>基线 12%、MDE 1pp、α=0.05、功效 80% → 每组约需 <b>17,164</b> 样本</li>
+      <li>本实验实际每组 144,319 → 80% 功效下 MDE ≈ <b>0.34pp</b>——即「连 0.34pp 的真实差异都大概率检得出」；实际差 0.17pp 仍不显著 → 有较强证据表明真实差异极小</li>
+      <li>Cookie Cats 每组约 45,000 → MDE 约 0.6pp 量级，足够检出 7 日留存的 0.6pp 显著差异</li>
+    </ul>
+    <pre><span class="p"># 事前功效分析（应用「实验设计器」页）</span>
+<span class="c">h = |</span>2·arcsin√(p+mde) − 2·arcsin√p<span class="c">|</span>
+n = NormalIndPower().solve_power(effect_size=h, power=<span class="v">0.8</span>, alpha=<span class="v">0.05</span>)</pre>
+    <div class="warnbox">「事后功效」的陷阱：基于观测效应量算功效与 p 值一一对应，不提供新信息。真正有用的是<b>事前</b>功效分析——这也写在引擎的注释里。</div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="s5">
+  <h2><span class="no">05</span>SRM：实验有效性的第一道闸门</h2>
+  <div class="card">
+    <p><b>Sample Ratio Mismatch（样本比例失衡）</b>：预期 50:50 分流，实际观测 47:53——哪怕只偏一点，也说明分流系统或数据管道有问题，<b>此时一切检验结果都不可信</b>（偏差与结果相关性会造成虚假显著）。</p>
+    <h3>检测方法：卡方拟合优度，α = 0.001</h3>
+    <div class="formula">χ² = Σ (观测ᵢ − 期望ᵢ)² / 期望ᵢ，自由度 = 组数 − 1</div>
+    <p>为什么用 0.001 而不是 0.05？因为 SRM 检验的代价不对称：误报（重跑实验）成本低，漏报（带着污染数据决策）成本极高——所以宁可错杀。</p>
+    <h3>本数据实况</h3>
+    <p>原始数据 147,202 vs 147,276（p=0.89 ✓）；清洗后 144,319 vs 144,316（p=0.995 ✓）——两个数据集都通过了 SRM，可以放心检验。而清洗掉的 3,893 行「组-页不匹配」正是新手最常忽略的分流故障信号。</p>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="s6">
+  <h2><span class="no">06</span>peeking：中途偷看 p 值的代价</h2>
+  <div class="card">
+    <p>每天看一次 p 值，「显著了就停、不显著继续跑」——这是最常见的 AB 作死姿势。名义 α=5% 的实验，若允许在 30 个检查点任意停止，实际假阳性率可膨胀到 30%+。</p>
+    <h3>用真实数据重演（应用「深入分析」页）</h3>
+    <p>把营销页实验按时间重放：25 个检查点的 p 值在 0.15 ~ 0.94 间游走。想象一个实验员在第 2 天看到 p=0.30 就想「再跑跑」，第 20 天看到 p=0.15 就想「差不多了吧」——每个「想停就停」的决策都在偷走统计效力。</p>
+    <h3>正确做法</h3>
+    <ol class="steps">
+      <li><b>事前定死样本量/时长</b>，跑满再判（最简单、最常用）</li>
+      <li>若必须中途决策：用<b>序贯检验</b>（O'Brien-Fleming 等边界随时间收紧）或<b>贝叶斯方法</b>（后验概率 + 预期损失）</li>
+      <li>绝对禁止：无边界地反复看 p 值 + 手动停</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="s7">
+  <h2><span class="no">07</span>多重比较：看得越多，撞得越假</h2>
+  <div class="card">
+    <p>同时检验 m 个指标，「任何一个显著就宣称实验有效」——假阳性率从 α 膨胀为 1−(1−α)^m。两个指标就是 1−0.95² ≈ 10%，翻倍。</p>
+    <table>
+      <tr><th>校正方法</th><th>规则</th><th>特点</th></tr>
+      <tr><td>Bonferroni</td><td><code>p_adj = min(p·m, 1)</code></td><td>最保守，任何场景都稳</td></tr>
+      <tr><td>Holm（step-down）</td><td>最小 p 乘 m、次小乘 m−1……逐步向下</td><td>普遍优于 Bonferroni，推荐默认</td></tr>
+      <tr><td>序贯门控</td><td>先验定指标优先级，一个一个按序检验</td><td>业务常用：主指标过了才看次指标</td></tr>
+    </table>
+    <h3>Cookie Cats 实况</h3>
+    <p>次日留存 p≈0.076、7 日留存 p≈0.0016。Holm 校正后：7 日留存仍显著（p≈0.0032），次日留存不显著。结论清晰表述为：<b>「门槛后移未发现对次日留存有影响，但显著降低了 7 日留存（约 0.6pp）」</b>——不砍掉非显著指标的报告义务，也不让显著指标被平均。</p>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="s8">
+  <h2><span class="no">08</span>分层稳健性：防辛普森悖论</h2>
+  <div class="card">
+    <p>总体差异可能被子群结构掩盖或反转（辛普森悖论）。规范动作：把核心结论<b>按关键维度分层复核</b>——方向一致则稳健，出现反转必须重新归因。</p>
+    <p>应用在 Cookie Cats 深入分析页内置了按活跃度（0 轮 / 1-29 轮 / 30+ 轮）分层的 7 日留存对比：各层方向与总体一致（对照 ≥ 实验）→ 支持总体结论。同时展示了该数据的著名脏点：一名玩家 14 天玩了 49,854 轮——<b>分布严重右偏时均值不可比</b>，所以主指标选择留存率（比例）而非轮次均值。</p>
+    <div class="tip">其他常见分层维度：新老用户、平台、渠道、时间段（周一 vs 周末）。分层后样本量变小，注意每层自身的检验功效。</div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section id="s9">
+  <h2><span class="no">09</span>常见作死清单（自查表）</h2>
+  <div class="card">
+    <table>
+      <tr><th>作死行为</th><th>后果</th><th>正确姿势</th></tr>
+      <tr><td>不查 SRM 直接检验</td><td>分流污染 → 假显著</td><td>先跑卡方 SRM（α=0.001）</td></tr>
+      <tr><td>中途看 p 值就停</td><td>假阳性膨胀数倍</td><td>事前定样本量；或序贯/贝叶斯</td></tr>
+      <tr><td>多指标不校正</td><td>撞显著概率大增</td><td>Holm 校正 / 主次指标门控</td></tr>
+      <tr><td>把「不显著」说成「无差异」</td><td>错误决策（放弃改进）</td><td>报 MDE：「能检出 X 以上差异」</td></tr>
+      <tr><td>用均值比较右偏数据</td><td>被极端值带偏</td><td>中位数/分位/比例指标</td></tr>
+      <tr><td>实验组用户重复出现</td><td>身份泄漏</td><td>按用户去重 + SRM 复查</td></tr>
+      <tr><td>只看总体不看分层</td><td>辛普森悖论反转结论</td><td>关键维度分层复核</td></tr>
+      <tr><td>运行 3 天就下结论</td><td>新奇效应 + 周期性偏差</td><td>跑满至少 1-2 个完整周期</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="no">10</span>两个实验的完整结论（可直接引用）</h2>
+  <div class="card">
+    <h3>实验 A：新落地页能否提升购买转化？</h3>
+    <div class="kv">
+      <b>样本</b><span>清洗后 144,319 vs 144,316（SRM 通过；剔除 3,893 行组页不匹配 + 3,895 行重复用户）</span>
+      <b>结果</b><span>对照 12.04% vs 实验 11.87%，差 −0.17pp，95%CI [−0.39, +0.04]，z=1.40，p=0.16</span>
+      <b>结论</b><span>在 α=0.05 下未能拒绝原假设。样本量支撑 MDE≈0.34pp，故有较强证据表明真实差异即使存在也小于 0.4pp。业务建议：新页面无足够证据支持全量上线；若切换成本极低可保持，否则维持现状</span>
+    </div>
+    <h3>实验 B：门槛后移（30→40 关）对留存的影响？</h3>
+    <div class="kv">
+      <b>样本</b><span>45,189 vs 45,100（SRM 通过）</span>
+      <b>次日留存</b><span>44.82% vs 44.23%，p≈0.076，Holm 校正后不显著</span>
+      <b>7 日留存</b><span>44.79% vs 44.20%（差约 −0.6pp），p≈0.0016，Holm 校正后仍显著</span>
+      <b>结论</b><span>门槛后移造成玩家更晚遭遇强制休息，短期（次日）影响不显著，但显著降低 7 日留存——休息机制更早出现反而利于长期留存。建议维持 30 关门槛</span>
+    </div>
+    <div class="tip">注意结论的措辞结构：样本 → 数字 → 统计判断 → 业务含义 → 建议。五个零件一个不少，且每个数字都能在应用里复算。</div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="no">11</span>代码导读：方法在哪个文件</h2>
+  <div class="card">
+    <table>
+      <tr><th>文件</th><th>内容</th></tr>
+      <tr><td><code>src/engine.py</code></td><td>全部统计方法的实现：SRM 卡方 / 双比例 z 检验 / Wilson CI / Cohen's h / NormalIndPower 功效与样本量 / Bonferroni-Holm / peeking 轨迹 / 蒙特卡洛模拟。每段 docstring 写明方法与局限</td></tr>
+      <tr><td><code>app.py</code></td><td>四页交互：实验设计与质量 → 核心检验 → 深入分析 → 实验设计器。自动结论文案由 <code>verdict()</code> 模板生成</td></tr>
+      <tr><td><code>data/</code></td><td>两个公开数据集 CSV，来源与许可见 README</td></tr>
+    </table>
+    <h3>工程亮点（也是教学点）</h3>
+    <ol class="steps">
+      <li><b>聚合优先架构</b>：清洗不物理删行而是打标志列（valid/first_user），一切统计经 groupby 聚合得出——可审计且内存友好</li>
+      <li><b>结论与代码分离</b>：文案由数字模板生成，杜绝「先有结论再找数字」</li>
+      <li><b>蒙特卡洛交叉验证</b>：模拟功效 vs 解析公式互相印证（0.986 vs 0.990），教「如何验证自己的统计工具」</li>
+      <li><b>诚实边界</b>：事后功效、模拟数据、情景估计均明确标注局限，不冒充真实结论</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  AB 实验方法论 · 配套 ab-testing-lab 应用 · 数据：Kaggle ab_test 公开镜像 + Cookie Cats 公开实验数据 · 结论均由数据计算生成
+</footer>
+</main>
+</div>
+</body>
+</html>
